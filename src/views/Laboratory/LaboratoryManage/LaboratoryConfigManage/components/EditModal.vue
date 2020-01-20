@@ -1,0 +1,320 @@
+<template>
+  <div class="modal-dialog">
+    <el-dialog
+      class="dialog-model"
+      :visible="EditVisible"
+      @close="EditVisibleChange(false)"
+      width="900px"
+      :modal-append-to-body="false"
+      title="编辑实验室"
+    >
+      <el-form
+        :model="ruleForm"
+        :rules="rules"
+        ref="ruleForm"
+        label-width="100px"
+        class="fsize14P"
+      >
+        <section class="dialog-from-content">
+          <el-form-item label="编码" prop="timeArrangeCode">
+            <el-input v-model="ruleForm.timeArrangeCode" placeholder="请输入编码"/>
+          </el-form-item>
+          <el-form-item label="名称" prop="timeArrangeName">
+            <el-input v-model="ruleForm.timeArrangeName" placeholder="请输入名称"/>
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input type="textarea" v-model="ruleForm.remarks" placeholder="请输入备注"/>
+          </el-form-item>
+          <el-form-item label="实验室" prop="laboratory">
+            <el-checkbox-group v-model="ruleForm.laboratory">
+              <el-checkbox
+                v-for="item in [...laboratory, ...timeArrangeRoomList]"
+                :label="item.laboratoryInfoId"
+                :key="item.laboratoryInfoId"
+                v-model="item.laboratoryInfoId"
+              >{{ item.laboratoryName }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+          <section class="table-add">
+            <section class="table-add-head flex">
+              <p class="table-add-title">添加时间段<span class="table-add-warn" v-show='tableWarn'>
+                <i class="el-icon-warning-outline"/>请添加时间段</span>
+              </p>
+              <el-button type="primary" size="medium" @click='addTtemplate'>添加</el-button>
+            </section>
+            <el-table
+              :data="ruleForm.timeArrangeList"
+              style="width: 100%"
+            >
+              <el-table-column type="index" lable=' ' width="55"/>
+              <el-table-column label="排序" width="90" align='center'>
+                <template slot-scope="scope">
+                  <el-form-item
+                    label-width='0'
+                    :prop='"timeArrangeList." + scope.$index + ".timeSort"'
+                    :rules='rules.timeSort'
+                  >
+                    <el-input v-model="scope.row.timeSort" placeholder="请输入排序"/>
+                  </el-form-item>
+                </template>
+              </el-table-column>
+              <el-table-column label="时间段" align='center'>
+                <template slot-scope="scope">
+                  <el-form-item
+                    label-width='0'
+                    :prop='"timeArrangeList." + scope.$index + ".time"'
+                    :rules='rules.time'
+                  >
+                    <el-time-picker
+                      is-range
+                      v-model="scope.row.time"
+                      range-separator="至"
+                      start-placeholder="开始时间"
+                      end-placeholder="结束时间"
+                      format='HH:mm'
+                      value-format='HH:mm'
+                      placeholder="选择时间范围"
+                      :picker-options="{
+                        selectableRange: `00:00-23:59`
+                      }"/>
+                  </el-form-item>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="120" align='center'>
+                <template slot-scope="scope">
+                  <el-button type="danger" size="medium" @click='delTtemplate(scope.$index)'>删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </section>
+
+        </section>
+        <el-form-item class="dialog-footer">
+          <el-button type="primary" @click="submitForm('ruleForm')" size="medium">立即修改</el-button>
+          <el-button @click="resetForm('ruleForm')" size="medium">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+  import { Message } from 'element-ui'
+  import { mapState, mapMutations } from 'vuex'
+  import { code, local } from '@/config/wildcard'
+
+  export default {
+    props: {
+      infoId: {
+        type: String
+      },
+      info: {
+        type: Function
+      }
+    },
+    data () {
+      return {
+        ruleForm: {
+          laboratory: [],
+          roomType: '2',
+          timeArrangeCode: '',
+          timeArrangeName: '',
+          remarks: '',
+          timeArrangeList: []
+        },
+        
+        rules: {
+          timeArrangeCode: [
+            { required: true, message: '请输入时间安排编码', trigger: 'blur' }
+          ],
+          timeArrangeName: [
+            { required: true, message: '请输入时间安排名称', trigger: 'blur' }
+          ],
+          timeSort: [
+            { required: true, message: '请输入排序', trigger: 'blur' }
+          ],
+          roomId: [
+            { required: true, message: '请选择教室', trigger: 'change' }
+          ],
+          time: [
+            {
+              trigger: 'blur', validator: (rule, value, callBack) => {
+                if (value) {
+                  callBack()
+                } else {
+                  callBack(new Error('请选择时间'))
+                }
+              }
+            }
+          ]
+        },
+        tableWarn: false,
+        timeArrangeRoomList: []
+      }
+    },
+    mounted () {},
+    computed: {
+      ...mapState({
+        EditVisible: state => state.EditVisible,
+        laboratory: state => state.laboratoryConfigManage.laboratory
+      })
+    },
+    methods: {
+      ...mapMutations([
+        'EditVisibleChange'
+      ]),
+      addTtemplate () {
+        this.ruleForm.timeArrangeList.push({
+          startTime: '',
+          endTime: '',
+          timeSort: '',
+          time: ''
+        })
+        this.tableWarn = false
+      },
+      delTtemplate (index) {
+        this.ruleForm.timeArrangeList.splice(index, 1)
+      },
+      
+      infoDetail () {
+        this.webapi({
+          url: `/laboratory/api/timeArrangeConfig/queryByPrimaryKey`,
+          data: {
+            timeArrangeConfigId: this.infoId
+          }
+        }).then(res => {
+          const {
+            resultCode,
+            data,
+            resultMessage
+          } = res
+          if (resultCode === code.CODE_SUCCESS) {
+            let ruleForm = this.ruleForm
+            for (let i in ruleForm) {
+              (typeof data[i] !== 'string' || data[i].length !== 0) &&
+              (ruleForm[i] = data[i])
+            }
+            ruleForm.timeArrangeList = data.timeArrangeList.map(item => {
+              item.time = [item.startTime.substr(11, 5), item.endTime.substr(11, 5)]
+              return item
+            })
+            ruleForm.laboratory = data.timeArrangeRoomList.map(item => {
+              return item.roomId
+            })
+            this.ruleForm = ruleForm
+            let timeArrangeRoomList = data.timeArrangeRoomList.map(item => {
+              return {
+                laboratoryInfoId: item.roomId,
+                laboratoryName: item.roomName
+              }
+            })
+            this.timeArrangeRoomList = timeArrangeRoomList
+          }
+        })
+      },
+      edit () {
+        let ruleForm = JSON.parse(JSON.stringify(this.ruleForm))
+        for (let i = 0; i < ruleForm.timeArrangeList.length; i++) {
+          const item = ruleForm.timeArrangeList[i]
+          ruleForm[`timeArrangeList[${i}].timeSort`] = item.timeSort
+          ruleForm[`timeArrangeList[${i}].startTime`] = item.time[0] + ':00'
+          ruleForm[`timeArrangeList[${i}].endTime`] = item.time[1] + ':00'
+          ruleForm[`timeArrangeList[${i}].duration`] = this.duration(item.time[0], item.time[1])
+
+        }
+        delete ruleForm.timeArrangeList
+        for (let i = 0; i < ruleForm.laboratory.length; i++) {
+          const item = ruleForm.laboratory[i]
+          ruleForm[`timeArrangeRoomList[${i}].roomId`] = item
+        }
+        delete ruleForm.laboratory
+        this.webapi({
+          url: '/laboratory/api/timeArrangeConfig/updateTimeArrangeConfig',
+          data: {
+            ...ruleForm,
+            timeArrangeConfigId: this.infoId
+          }
+        }).then(res => {
+          const { resultCode, resultMessage } = res
+          if (resultCode === code.CODE_SUCCESS) {
+            this.info()
+            Message({
+              message: resultMessage
+            })
+            this.resetForm('ruleForm')
+            this.EditVisibleChange(false)
+          }
+        })
+      },
+      duration (ts, te) {
+        const timeStart = this.calculation(ts.split(':'))
+        const timeEnd = this.calculation(te.split(':'))
+        return timeEnd - timeStart
+      },
+      calculation (arr) {
+        return Number(arr[0] * 60) + Number(arr[1])
+      },
+      
+      submitForm (formName) {
+        this.$refs[formName].validate(valid => {
+          if (this.ruleForm.timeArrangeList.length) {
+            if (valid) {
+              this.edit()
+            }
+          } else {
+            this.tableWarn = true
+          }
+        })
+      },
+      
+      resetForm (formName) {
+        this.$refs[formName].resetFields()
+        this.ruleForm = {
+          laboratory: [],
+          roomType: '2',
+          timeArrangeCode: '',
+          timeArrangeName: '',
+          remarks: '',
+          timeArrangeList: []
+        }
+      }
+    },
+    watch: {
+      'EditVisible': function (val) {
+        val && this.infoDetail()
+      }
+    }
+  }
+</script>
+
+<style lang="scss" rel="stylesheet/scss" scoped>
+  .dialog-model {
+  }
+
+  .dialog-from-content > .el-form-item {
+    width: 500px;
+  }
+
+  .table-add {
+    padding-top: 30px;
+
+    .table-add-head {
+      justify-content: space-between;
+
+      .table-add-title {
+        font-size: 20px;
+
+        .table-add-warn {
+          color: #F56C6C;
+          font-size: 12px;
+          padding-left: 8px;
+        }
+      }
+    }
+  }
+
+  .table-add .el-form-item {
+    margin-bottom: 0;
+  }
+</style>

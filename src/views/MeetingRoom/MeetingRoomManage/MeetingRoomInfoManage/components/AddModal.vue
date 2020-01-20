@@ -1,0 +1,448 @@
+<template>
+  <div class="modal-dialog">
+    <el-dialog
+      class="dialog-model"
+      :visible="AddVisible"
+      @close="AddVisibleChange(false)"
+      width="660px"
+      :modal-append-to-body="false"
+      title='添加会议室'
+    >
+      <el-form
+        :model="ruleForm"
+        :rules="rules"
+        ref="ruleForm"
+        label-width="100px"
+        class="dialog-form fsize14P"
+      >
+        <section class="dialog-from-content">
+          <el-form-item label="会议室编码" prop="meetingRoomCode">
+            <el-input size="medium" v-model="ruleForm.meetingRoomCode" placeholder="请输入编码"/>
+          </el-form-item>
+          <el-form-item label="会议室名称" prop="meetingRoomName">
+            <el-input size="medium" v-model="ruleForm.meetingRoomName" placeholder="请输入名称"/>
+          </el-form-item>
+          <el-form-item label="会议室类型" prop="meetingRoomType">
+            <el-select
+              size="medium"
+              v-model="ruleForm.meetingRoomType"
+              placeholder="会议室类型"
+              clearable
+            >
+              <el-option
+                v-for="(item) in laboratory"
+                :key="item.dictionaryDataInfoId"
+                :label="item.dictionaryValue"
+                :value="item.dictionaryDataInfoId"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="可容纳人数" prop="capacityNum">
+            <el-input
+              size="medium"
+              type="number"
+              v-model="ruleForm.capacityNum"
+              placeholder="请输入可容纳人数"
+            />
+          </el-form-item>
+          <el-form-item label="管理员" prop="meetingRoomAdminUserId">
+            <el-select
+              size="medium"
+              v-model="ruleForm.meetingRoomAdminUserId"
+              placeholder="请选择管理员"
+              clearable
+            >
+              <el-option
+                v-for="item in user"
+                :key="item.userInfoId"
+                :label="item.userName"
+                :value="item.userInfoId"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="安全责任人" prop="responsibleUserId">
+            <el-select
+              size="medium"
+              v-model="ruleForm.responsibleUserId"
+              placeholder="请选择安全责任人"
+              clearable
+            >
+              <el-option
+                v-for="item in user"
+                :key="item.userInfoId"
+                :label="item.userName"
+                :value="item.userInfoId"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="简介" prop="meetingRoomIntroduction">
+            <el-input
+              size="medium"
+              type="textarea"
+              v-model="ruleForm.meetingRoomIntroduction"
+              placeholder="请输入简介"
+            />
+          </el-form-item>
+          <el-form-item label="安全须知" prop="safetyInstruction">
+            <el-input
+              type="textarea"
+              size="medium"
+              v-model="ruleForm.safetyInstruction"
+              placeholder="请输入安全须知"
+            />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input size="medium" type="textarea" v-model="ruleForm.remarks" placeholder="请输入备注"/>
+          </el-form-item>
+          <el-form-item label="位置" prop="parentName">
+            <el-input
+              size="medium"
+              type="input"
+              v-model="ruleForm.parentName"
+              @focus="TreeChooseState=true"
+            />
+          </el-form-item>
+        </section>
+        <el-form-item class="dialog-footer">
+          <el-button type="primary" @click="submitForm('ruleForm')" size="medium">立即创建</el-button>
+          <el-button @click="resetForm('ruleForm')" size="medium">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+    <TreeChooseParent
+      :dataTree="dataTree"
+      :dataNative="dataNative"
+      :visible="TreeChooseState"
+      v-on:hideDialog="TreeChooseState = false"
+      :parentIds.sync="ruleForm.parentIds"
+      :TreeChooseName.sync="ruleForm.parentName"
+      :id.sync="ruleForm.position"
+      :parentNames.sync="ruleForm.parentName"
+      :TreeChooseType="0"
+      title="菜单选择"
+    />
+  </div>
+</template>
+
+<script>
+  import { Message } from 'element-ui'
+  import { mapState, mapMutations } from 'vuex'
+  import TreeChooseParent from '@/components/Tree/TreeChooseParent'
+  import { code, local } from '@/config/wildcard'
+
+  export default {
+    props: {
+      dataTree: {
+        type: Array,
+        default: true
+      },
+      
+      dataNative: {
+        type: Array,
+        default: true
+      },
+      info: {
+        type: Function
+      }
+    },
+    data () {
+      return {
+        ruleForm: {
+          
+          meetingRoomCode: '',
+          
+          meetingRoomName: '',
+          
+          safetyInstruction: '',
+          
+          meetingRoomType: '',
+          
+          meetingRoomStatus: '1',
+          
+          capacityNum: '',
+          
+          meetingRoomAdminUserId: '',
+          
+          meetingRoomAdminUserName: '',
+          
+          meetingRoomAdminPhone: '',
+          
+          responsibleUserId: '',
+          
+          responsibleUserName: '',
+          
+          meetingRoomIntroduction: '',
+          
+          createUserId: '',
+          
+          updateUserId: '',
+          
+          remarks: '',
+          
+          affiliatedBuilding: '',
+          
+          affiliatedFloor: '',
+          
+          affiliatedRoom: '',
+          
+          position: '',
+          
+          parentIds: '',
+          //
+          parentName: ''
+        },
+        
+        meetingRoomTypeSelect: [
+          {
+            value: '0',
+            label: '目录'
+          },
+          {
+            value: '1',
+            label: '菜单'
+          }
+        ],
+        
+        departmentVisible: false,
+        
+        pickerOptions: {
+          disabledDate: time => {
+            const curDate = Date.now()
+            return time.getTime() > curDate
+          }
+        },
+        
+        rules: {
+          meetingRoomCode: [
+            {
+              required: true,
+              message: '请输入会议室编码',
+              trigger: 'blur'
+            }
+          ],
+          meetingRoomName: [
+            {
+              required: true,
+              message: '请输入会议室名称',
+              trigger: 'blur'
+            }
+          ],
+          meetingRoomType: [
+            {
+              required: true,
+              message: '请选择会议室类型',
+              trigger: 'change'
+            }
+          ],
+          capacityNum: [
+            {
+              required: true,
+              message: '请输入会议室可容纳人数',
+              trigger: 'blur'
+            }
+          ],
+          meetingRoomAdminUserId: [
+            {
+              required: true,
+              message: '请选择管理员',
+              trigger: 'change'
+            }
+          ],
+          meetingRoomAdminPhone: [
+            {
+              required: true,
+              message: '请输入管理员电话号码',
+              trigger: 'blur'
+            }
+          ],
+          parentName: [
+            {
+              required: true,
+              message: '请选择会议室位置',
+              trigger: 'change'
+            },
+            {
+              trigger: 'change',
+              validator: (rule, value, callback) => {
+                const arr = value.split(',')
+                if (arr.length === 3) {
+                  callback()
+                  this.TreeChooseState = false
+                } else {
+                  console.log(3)
+                  callback(new Error('请选择房间'))
+                }
+              }
+            }
+          ],
+          responsibleUserId: [
+            {
+              required: true,
+              message: '请选择安全负责人',
+              trigger: 'blur'
+            }
+          ],
+          meetingRoomIntroduction: [
+            {
+              required: true,
+              message: '请输入会议室简介',
+              trigger: 'blur'
+            }
+          ],
+          safetyInstruction: [
+            {
+              required: true,
+              message: '请输入会议室须知',
+              trigger: 'blur'
+            }
+          ]
+        },
+        TreeChooseState: false
+      }
+    },
+    components: {
+      TreeChooseParent
+    },
+    mounted () {},
+    computed: {
+      ...mapState({
+        AddVisible: state => state.AddVisible,
+        user: state => state.dictionary.user,
+        laboratory: state => state.dictionary.laboratory
+      })
+    },
+    methods: {
+      ...mapMutations([
+        
+        'AddVisibleChange'
+      ]),
+      
+      departmentState () {
+        this.departmentVisible = !this.departmentVisible
+      },
+      
+      departmentChoose (item) {
+        if (!item.children) {
+          this.ruleForm.departmentInfoId = item.id
+          this.ruleForm.departmentName = item.label
+          this.parentId = []
+          this.dataNativeSet(item.parentId)
+          this.departmentVisible = false
+        }
+      },
+      
+      addMenu () {
+        const { userId } = JSON.parse(localStorage.getItem(local.USER))
+        this.ruleForm.createUserId = userId
+        this.ruleForm.updateUserId = userId
+        this.webapi({
+          url: '/meeting/api/meetingRoom/addMeetingRoom',
+          data: {
+            ...this.ruleForm
+          }
+        }).then(res => {
+          const { resultCode, resultMessage } = res
+          if (resultCode === code.CODE_SUCCESS) {
+            this.info()
+            Message({
+              message: resultMessage
+            })
+            this.resetForm('ruleForm')
+            this.AddVisibleChange(false)
+          }
+        })
+      },
+      
+      submitForm (formName) {
+        this.$refs[formName].validate(valid => {
+          if (valid) {
+            this.addMenu()
+          } else {
+            return false
+          }
+        })
+      },
+      
+      resetForm (formName) {
+        this.$refs[formName].resetFields()
+      }
+    },
+    watch: {
+      'ruleForm.parentIds': function (val) {
+        console.log()
+        const arr = val.split(',')
+        this.ruleForm.affiliatedBuilding = arr[2]
+        this.ruleForm.affiliatedFloor = arr[1]
+        this.ruleForm.affiliatedRoom = arr[0]
+      },
+      'ruleForm.meetingRoomAdminUserId': function (val) {
+        console.log()
+        for (let i = 0; i < this.user.length; i++) {
+          const item = this.user[i]
+          console.log(val, item.userInfoId)
+          if (val === item.userInfoId) {
+            this.ruleForm.meetingRoomAdminUserName = item.userName
+            this.ruleForm.meetingRoomAdminPhone = item.phoneNumber
+          }
+        }
+      },
+      'ruleForm.responsibleUserId': function (val) {
+        for (let i = 0; i < this.user.length; i++) {
+          const item = this.user[i]
+          if (val === item.userInfoId) {
+            
+            this.ruleForm.responsibleUserName = item.userName
+            
+          }
+        }
+      }
+    }
+  }
+</script>
+<style lang="scss" rel="stylesheet/scss" scoped>
+  @import "@/assets/css/model.scss";
+
+  .dialog-model {
+    .dialog-form {
+      .el-textarea {
+        margin-bottom: 25px;
+      }
+
+      div {
+        overflow: hidden;
+        margin-bottom: 5px;
+
+        span:first-child {
+          width: 100px;
+          height: 24px;
+          float: left;
+          line-height: 28px;
+          text-align: right;
+          padding-right: 25px;
+          text-align: justify;
+          display: inline-block;
+          vertical-align: top;
+
+          i {
+            display: inline-block;
+            width: 100%;
+            height: 0;
+          }
+        }
+
+        span:last-child {
+          width: calc(100% - 126px);
+          float: right;
+
+          input {
+            width: 100%;
+          }
+        }
+
+        .form-radio {
+          line-height: 40px;
+        }
+      }
+    }
+  }
+</style>

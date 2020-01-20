@@ -1,0 +1,71 @@
+.el-dialog {
+    margin-top: 10vh;
+    border-radius: 10px;
+}
+.dialog-container {
+    max-height: 75vh;
+    overflow: auto;
+ }
+.dialog-header {
+    overflow: hidden;
+}
+
+.dialog-header h3 {
+    text-align: center;
+}
+
+.dialog-container {
+    border: 1px solid #f1f2f7;
+    padding: 20px 20px;
+}
+
+.dialog-info p {
+    margin-bottom: 10px;
+}
+
+.dialog-btn {
+    position: absolute;
+    bottom: 50px;
+}
+
+.dialog-info p span:last-child {
+    width: auto;
+    display: initial;
+}
+
+.dialog-info p span:last-child.remark {
+    display: inline-block;
+    height: 150px;
+    overflow-y: auto;
+    line-height: 18px;
+}
+
+.dialog-allBtn {
+    position: absolute;
+    bottom: 45px;
+    width: 458px;
+    text-align: center;
+}
+
+.dialog-info p span.selContent {
+    width: auto !important;
+    display: inline-block;
+}
+
+.dialog-info p span.selContent .el-select {
+    margin-top: -15px;
+}
+
+.dialog-info p span.selContent .el-select .el-input__icon {
+    position: absolute;
+    bottom: 0;
+}
+
+.dialog-info p span.selContent .el-select .el-input__icon.is-reverse {
+    position: initial;
+    bottom: initial;
+}
+.dialog-from{
+}
+
+
